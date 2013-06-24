@@ -16,8 +16,7 @@
 # Configuration for components to use in the buildpack
 ---
 containers:
-  - "JavaBuildpack::Container::Main"
-  - "JavaBuildpack::Container::Tomcat"
+  - "NeocoreBuildpack::Container::NeocoreJetty"
 jres:
   - "JavaBuildpack::Jre::OpenJdk"
 frameworks:

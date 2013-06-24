@@ -19,6 +19,9 @@ require 'fileutils'
 require 'pathname'
 require 'time'
 require 'yaml'
+require 'neocore_buildpack/util/webapp_name'
+require 'neocore_buildpack/util/manifest_reader'
+require 'neocore_buildpack/container/neocore'
 
 module JavaBuildpack
 
@@ -33,6 +36,8 @@ module JavaBuildpack
     #
     # @param [String] app_dir The application directory
     def initialize(app_dir)
+      @app_dir = app_dir
+
       Buildpack.create_log_file app_dir
       Buildpack.dump_environment_variables
       Buildpack.require_component_files
@@ -76,15 +81,13 @@ module JavaBuildpack
     #                         this application.  If no container can run the application, the array will be empty
     #                         (+[]+).
     def detect
-      jre_detections = @jres.map { |jre| jre.detect }.compact
-      raise "Application can be run using more than one JRE: #{jre_detections.join(', ')}" if jre_detections.size > 1
+      has_intalio_war = File.exists?("#{@app_dir}/#{NeocoreBuildpack::WAR_FILE_NAME}")
 
-      framework_detections = @frameworks.map { |framework| framework.detect }.compact
+      return true if has_intalio_war
 
-      container_detections = @containers.map { |container| container.detect }.compact
-      raise "Application can be run by more than one container: #{container_detections.join(', ')}" if container_detections.size > 1
+      reader = NeocoreBuildpack::ManifestReader.new(@app_dir)
 
-      container_detections.empty? ? [] : jre_detections.concat(framework_detections).concat(container_detections).flatten.compact
+      reader.application_name == NeocoreBuildpack::APPLICATION_NAME
     end
 
     # Transforms the application directory such that the JRE, container, and frameworks can run the application
@@ -105,13 +108,17 @@ module JavaBuildpack
       frameworks.each { |framework| framework.release }
       command = container.release
 
-      {
+      result = {
           'addons' => [],
-          'config_vars' => {},
+          'config_vars' => {'INTALIO_BOOT_DATA' => "#{@app_dir}/data_package"},
           'default_process_types' => {
               'web' => command
           }
-      }.to_yaml
+      }
+
+      puts "-----> #{result}"
+
+      result.to_yaml
     end
 
     # Logs data with a given title and the current time in the buildpack's log file.

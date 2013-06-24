@@ -1,0 +1,10 @@
+---
+applications:
+- name: intalio
+  memory: 2G
+  instances: 1
+  url: none
+  path: .
+  env:
+    war_file_url: http://downloads.intalio.com/prod/intalio/2.6/intalio.tar.gz
+    data_package_url: http://downloads.intalio.com/prod/intalio/2.6/data_external.zip

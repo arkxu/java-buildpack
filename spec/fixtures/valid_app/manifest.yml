@@ -1,0 +1,7 @@
+---
+applications:
+- name: intalio
+  memory: 2G
+  instances: 1
+  url: none
+  path: .
