@@ -51,7 +51,8 @@ module JavaBuildpack
           :app_dir => app_dir,
           :java_home => java_home,
           :java_opts => java_opts,
-          :configuration => Buildpack.configuration(app_dir, jre)
+          :configuration => Buildpack.configuration(app_dir, jre),
+          :diagnostics => {:directory => @@diagnostics_dir, :log_file => @@buildpack_log_file}
         })
       end
 
@@ -60,7 +61,8 @@ module JavaBuildpack
           :app_dir => app_dir,
           :java_home => java_home,
           :java_opts => java_opts,
-          :configuration => Buildpack.configuration(app_dir, framework)
+          :configuration => Buildpack.configuration(app_dir, framework),
+          :diagnostics => {:directory => @@diagnostics_dir, :log_file => @@buildpack_log_file}
         })
       end
 
@@ -69,7 +71,8 @@ module JavaBuildpack
           :app_dir => app_dir,
           :java_home => java_home,
           :java_opts => java_opts,
-          :configuration => Buildpack.configuration(app_dir, container)
+          :configuration => Buildpack.configuration(app_dir, container),
+          :diagnostics => {:directory => @@diagnostics_dir, :log_file => @@buildpack_log_file}
         })
       end
 
@@ -108,17 +111,15 @@ module JavaBuildpack
       frameworks.each { |framework| framework.release }
       command = container.release
 
-      result = {
+      payload = {
           'addons' => [],
           'config_vars' => {'INTALIO_BOOT_DATA' => "#{@app_dir}/data_package"},
           'default_process_types' => {
               'web' => command
           }
-      }
-
-      puts "-----> #{result}"
-
-      result.to_yaml
+      }.to_yaml
+      Buildpack.log('release payload', payload)
+      payload
     end
 
     # Logs data with a given title and the current time in the buildpack's log file.
@@ -136,10 +137,14 @@ module JavaBuildpack
 
     COMPONENTS_CONFIG = '../../config/components.yml'.freeze
 
+    DIAGNOSTICS_DIRECTORY = 'buildpack-diagnostics'.freeze
+
+    LOG_FILE_NAME = 'buildpack.log'.freeze
+
     def self.create_log_file(app_dir)
-      @@diagnostics_dir = File.expand_path("buildpack-diagnostics", app_dir)
+      @@diagnostics_dir = File.expand_path(DIAGNOSTICS_DIRECTORY, app_dir)
       FileUtils.mkdir_p @@diagnostics_dir
-      @@buildpack_log_file = File.expand_path("buildpack.log", @@diagnostics_dir)
+      @@buildpack_log_file = File.expand_path(LOG_FILE_NAME, @@diagnostics_dir)
 
       # Create new log file and write current time into it.
       File.open(@@buildpack_log_file, 'a') do |log_file|
