@@ -85,13 +85,10 @@ module NeocoreBuildpack::Container
         system("curl #{data_package_file_url} -s -o #{data_package_file}")        
       end
 
-      puts "-----> Package downloaded. "
-
       data_package_folder = File.join(@app_dir, NeocoreBuildpack::DATA_PACKAGE_FOLDER)
       `rm -fr #{data_package_folder}`
       `mkdir -p #{data_package_folder}`
       `unzip -o #{data_package_file} -d #{data_package_folder}`
-      puts "-----> Package extraced. "
       File.delete("#{data_package_file}")
       puts `ls -l -a #{@app_dir}`      
     end
