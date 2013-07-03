@@ -129,7 +129,7 @@ module JavaBuildpack::Jre
             :diagnostics => {:directory => root}
         ).release
 
-        expect(java_opts.join(' ')).to match(/-XX:OnOutOfMemoryError=#{root}\/killjava/)
+        expect(java_opts).to include("-XX:OnOutOfMemoryError=#{root}/killjava")
       end
     end
 

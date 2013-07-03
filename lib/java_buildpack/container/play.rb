@@ -15,6 +15,7 @@
 
 require 'uri'
 require 'java_buildpack/container'
+require 'java_buildpack/container/container_utils'
 require 'java_buildpack/repository/configured_item'
 require 'java_buildpack/util/application_cache'
 require 'java_buildpack/util/format_duration'
@@ -35,7 +36,8 @@ module JavaBuildpack::Container
       @app_dir = context[:app_dir]
       @java_home = context[:java_home]
       @java_opts = context[:java_opts]
-      @start_script_path = File.join(@app_dir, PLAY_START_SCRIPT)
+      p = play_dir
+      @start_script_path = p ? File.join(p, PLAY_START_SCRIPT) : nil
     end
 
     # Detects whether this application is a Play application.
@@ -43,7 +45,7 @@ module JavaBuildpack::Container
     # @return [String] returns +Play+ if and only if the application has a +start+ script, otherwise
     #                  returns +nil+
     def detect
-      play_script? ? PLAY_TAG : nil
+      play_app? ? PLAY_TAG : nil
     end
 
     # Makes the +start+ script executable.
@@ -58,7 +60,9 @@ module JavaBuildpack::Container
     # @return [String] the command to run the application.
     def release
       @java_opts << "-D#{KEY_HTTP_PORT}=$PORT"
-      "PATH=#{@java_home}/bin:$PATH JAVA_HOME=#{@java_home} ./#{PLAY_START_SCRIPT} #{java_opts}"
+      java_opts_string = ContainerUtils.space(ContainerUtils.to_java_opts_s(@java_opts))
+
+      "PATH=#{@java_home}/bin:$PATH JAVA_HOME=#{@java_home} #{start_script_relative_path}#{java_opts_string}"
     end
 
     private
@@ -69,12 +73,24 @@ module JavaBuildpack::Container
 
     PLAY_TAG = 'Play'.freeze
 
-    def play_script?
-      File.exists?(@start_script_path) && !File.directory?(@start_script_path)
+    PLAY_JAR_PATTERN = 'lib/play.play_*.jar'.freeze
+    PLAY_JAR_STAGED_PATTERN = 'staged/play.play_*.jar'.freeze
+
+    def play_app?
+      play_dir != nil
     end
 
-    def java_opts
-      @java_opts.compact.sort.join(' ')
+    def play_dir
+      dirs = Dir.glob([@app_dir, File.join(@app_dir, '/*')]).select do |file|
+        File.directory?(file) && File.exists?("#{file}/#{PLAY_START_SCRIPT}") && (!Dir.glob(File.join(file, PLAY_JAR_PATTERN)).empty? ||
+            !Dir.glob(File.join(file, PLAY_JAR_STAGED_PATTERN)).empty?)
+      end
+      raise "Play application detected in multiple directories: #{dirs}" if dirs.size > 1
+      dirs.empty? ? nil : dirs[0]
+    end
+
+    def start_script_relative_path
+      @start_script_path ? @start_script_path[@app_dir.length + 1, @start_script_path.length - @app_dir.length - 1] : nil
     end
 
   end
