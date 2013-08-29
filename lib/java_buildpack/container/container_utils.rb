@@ -1,5 +1,6 @@
+# Encoding: utf-8
 # Cloud Foundry Java Buildpack
-# Copyright (c) 2013 the original author or authors.
+# Copyright 2013 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +15,7 @@
 # limitations under the License.
 
 require 'java_buildpack/container'
+require 'pathname'
 
 module JavaBuildpack::Container
 
@@ -35,6 +37,27 @@ module JavaBuildpack::Container
     # @return [String] an empty string if +value+ is +nil+ or empty, otherwise the value prepended with a space
     def self.space(value)
       value.nil? || value.empty? ? '' : " #{value}"
+    end
+
+    # Returns an +Array+ containing the relative paths of the JARs located in the additional libraries directory.  The
+    # paths of these JARs are relative to the +app_dir+.
+    #
+    # @param [String] app_dir the directory that the application exists in
+    # @param [String] lib_directory the directory that additional libraries are placed in
+    # @return [Array<String>] the relative paths of the JARs located in the additional libraries directory
+    def self.libs(app_dir, lib_directory)
+      libs = []
+
+      if lib_directory
+        root_directory = Pathname.new(app_dir)
+
+        libs = Pathname.new(lib_directory).children
+        .select { |file| file.extname == '.jar' }
+        .map { |file| file.relative_path_from(root_directory) }
+        .sort
+      end
+
+      libs
     end
 
   end

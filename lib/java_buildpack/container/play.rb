@@ -1,5 +1,6 @@
+# Encoding: utf-8
 # Cloud Foundry Java Buildpack
-# Copyright (c) 2013 the original author or authors.
+# Copyright 2013 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'uri'
 require 'java_buildpack/container'
 require 'java_buildpack/container/container_utils'
 require 'java_buildpack/repository/configured_item'
 require 'java_buildpack/util/application_cache'
 require 'java_buildpack/util/format_duration'
+require 'java_buildpack/util/play_utils'
+require 'pathname'
 
 module JavaBuildpack::Container
 
@@ -31,13 +33,14 @@ module JavaBuildpack::Container
     # @option context [String] :app_dir the directory that the application exists in
     # @option context [String] :java_home the directory that acts as +JAVA_HOME+
     # @option context [Array<String>] :java_opts an array that Java options can be added to
+    # @option context [String] :lib_directory the directory that additional libraries are placed in
     # @option context [Hash] :configuration the properties provided by the user
     def initialize(context)
       @app_dir = context[:app_dir]
       @java_home = context[:java_home]
       @java_opts = context[:java_opts]
-      p = play_dir
-      @start_script_path = p ? File.join(p, PLAY_START_SCRIPT) : nil
+      @lib_directory = context[:lib_directory]
+      @play_root = JavaBuildpack::Util::PlayUtils.root(@app_dir)
     end
 
     # Detects whether this application is a Play application.
@@ -45,14 +48,16 @@ module JavaBuildpack::Container
     # @return [String] returns +Play+ if and only if the application has a +start+ script, otherwise
     #                  returns +nil+
     def detect
-      play_app? ? PLAY_TAG : nil
+      @play_root ? id(JavaBuildpack::Util::PlayUtils.version(@play_root)) : nil
     end
 
     # Makes the +start+ script executable.
     #
     # @return [void]
     def compile
-      `chmod +x #{@start_script_path}`
+      system "chmod +x #{JavaBuildpack::Util::PlayUtils.start_script @play_root}"
+      add_libs_to_classpath @play_root
+      replace_bootstrap @play_root
     end
 
     # Creates the command to run the Play application.
@@ -60,38 +65,52 @@ module JavaBuildpack::Container
     # @return [String] the command to run the application.
     def release
       @java_opts << "-D#{KEY_HTTP_PORT}=$PORT"
+
+      path_string = "PATH=#{File.join @java_home, 'bin'}:$PATH"
+      java_home_string = ContainerUtils.space("JAVA_HOME=#{@java_home}")
+      start_script_string = ContainerUtils.space(start_script_relative @app_dir, @play_root)
       java_opts_string = ContainerUtils.space(ContainerUtils.to_java_opts_s(@java_opts))
 
-      "PATH=#{@java_home}/bin:$PATH JAVA_HOME=#{@java_home} #{start_script_relative_path}#{java_opts_string}"
+      "#{path_string}#{java_home_string}#{start_script_string}#{java_opts_string}"
     end
 
     private
 
-    KEY_HTTP_PORT = 'http.port'.freeze
+      KEY_HTTP_PORT = 'http.port'.freeze
 
-    PLAY_START_SCRIPT = 'start'.freeze
+      def add_libs_to_classpath(root)
+        if JavaBuildpack::Util::PlayUtils.lib_play_jar(root)
+          script_dir_relative_path = Pathname.new(@app_dir).relative_path_from(Pathname.new(@play_root)).to_s
 
-    PLAY_TAG = 'Play'.freeze
+          additional_classpath = ContainerUtils.libs(@app_dir, @lib_directory).map do |lib|
+            "$scriptdir/#{script_dir_relative_path}/#{lib}"
+          end
 
-    PLAY_JAR_PATTERN = 'lib/play.play_*.jar'.freeze
-    PLAY_JAR_STAGED_PATTERN = 'staged/play.play_*.jar'.freeze
-
-    def play_app?
-      play_dir != nil
-    end
-
-    def play_dir
-      dirs = Dir.glob([@app_dir, File.join(@app_dir, '/*')]).select do |file|
-        File.directory?(file) && File.exists?("#{file}/#{PLAY_START_SCRIPT}") && (!Dir.glob(File.join(file, PLAY_JAR_PATTERN)).empty? ||
-            !Dir.glob(File.join(file, PLAY_JAR_STAGED_PATTERN)).empty?)
+          update_file JavaBuildpack::Util::PlayUtils.start_script(root), /^classpath=\"(.*)\"$/, "classpath=\"#{additional_classpath.join(':')}:\\1\""
+        else
+          ContainerUtils.libs(@app_dir, @lib_directory).each do |lib|
+            system "ln -nsf ../#{lib} #{JavaBuildpack::Util::PlayUtils.staged root}"
+          end
+        end
       end
-      raise "Play application detected in multiple directories: #{dirs}" if dirs.size > 1
-      dirs.empty? ? nil : dirs[0]
-    end
 
-    def start_script_relative_path
-      @start_script_path ? @start_script_path[@app_dir.length + 1, @start_script_path.length - @app_dir.length - 1] : nil
-    end
+      def id(version)
+        "play-#{version}"
+      end
+
+      def replace_bootstrap(root)
+        update_file JavaBuildpack::Util::PlayUtils.start_script(root), /play\.core\.server\.NettyServer/, 'org.cloudfoundry.reconfiguration.play.Bootstrap'
+      end
+
+      def start_script_relative(app_dir, play_root)
+        "./#{Pathname.new(JavaBuildpack::Util::PlayUtils.start_script(play_root)).relative_path_from(Pathname.new(app_dir)).to_s}"
+      end
+
+      def update_file(file_name, pattern, replacement)
+        content = File.open(file_name, 'r') { |file| file.read }
+        content.gsub! pattern, replacement
+        File.open(file_name, 'w') { |file| file.write content }
+      end
 
   end
 

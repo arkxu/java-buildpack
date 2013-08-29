@@ -1,5 +1,6 @@
+# Encoding: utf-8
 # Cloud Foundry Java Buildpack
-# Copyright (c) 2013 the original author or authors.
+# Copyright 2013 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,23 +34,32 @@ module JavaBuildpack::Jre
     # @param [Numeric] total_memory the total virtual memory size of the operating system process in KB
     def initialize(weighting, size, total_memory)
       super('stack', weighting, size, false, total_memory)
-      set_size(DEFAULT_STACK_SIZE) unless size
+      @weighting = weighting
+      @total_memory = total_memory
+      size = DEFAULT_STACK_SIZE unless size
     end
 
     # Returns the excess memory in this memory bucket.
     #
     # @return [Numeric] the excess memory in KB
     def excess
-      if default_size
-        size ? default_size * ((size - DEFAULT_STACK_SIZE) / DEFAULT_STACK_SIZE) : 0
+      if @total_memory
+        size ? @total_memory * @weighting * ((size - DEFAULT_STACK_SIZE) / DEFAULT_STACK_SIZE) : 0
       else
-        MemorySize.ZERO
+        MemorySize::ZERO
       end
+    end
+
+    # Returns the default stack size.
+    #
+    # @return [MemorySize, nil] the default memory size or nil if there is no default
+    def default_size
+      DEFAULT_STACK_SIZE
     end
 
     private
 
-    DEFAULT_STACK_SIZE = MemorySize.new('1024K') # 1 MB
+      DEFAULT_STACK_SIZE = MemorySize.new('1024K') # 1 MB
 
   end
 

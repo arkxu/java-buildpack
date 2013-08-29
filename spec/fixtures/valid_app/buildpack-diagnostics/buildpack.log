@@ -1,0 +1,69 @@
+/Users/axu/prj/intalio/code/java-buildpack/spec/fixtures/valid_app/buildpack-diagnostics/buildpack.log @ 2013-06-24 15:17:20.095-07:00
+Environment variables @ 2013-06-24 15:17:20.095-07:00::
+---
+MANPATH: '/Users/axu/.nvm/v0.4.12/share/man:'
+rvm_bin_path: /Users/axu/.rvm/bin
+TERM_PROGRAM: Apple_Terminal
+GEM_HOME: /Users/axu/.rvm/gems/ruby-2.0.0-p0
+ANDROID_HOME: /Users/axu/mobile/android/android-sdk-mac_x86
+rvm_error_clr: "\e[31m"
+ANDROID_SWT: /Users/axu/mobile/android/android-sdk-mac_x86/tools/lib/x86_64
+TERM: xterm-256color
+SHELL: /bin/bash
+rvm_notify_clr: "\e[32m"
+IRBRC: /Users/axu/.rvm/rubies/ruby-2.0.0-p0/.irbrc
+TMPDIR: /var/folders/bc/vx581hrn1093xfmkwcjmydb80000gn/T/
+NVM_PATH: /Users/axu/.nvm/v0.4.12/lib/node
+GRADLE_HOME: /Users/axu/bin/gradle-1.0-rc-3
+Apple_PubSub_Socket_Render: /tmp/launch-GlX5rv/Render
+TERM_PROGRAM_VERSION: '309'
+OLDPWD: /Users/axu/prj/intalio/code
+MY_RUBY_HOME: /Users/axu/.rvm/rubies/ruby-2.0.0-p0
+TERM_SESSION_ID: 8840429A-17B8-45E8-8F05-EFB8406C3B13
+NVM_DIR: /Users/axu/.nvm
+USER: axu
+COMMAND_MODE: unix2003
+__array_start: '0'
+rvm_reset_clr: !binary |-
+  GyhCG1tt
+rvm_path: /Users/axu/.rvm
+SSH_AUTH_SOCK: /tmp/launch-rGyihG/Listeners
+__CF_USER_TEXT_ENCODING: 0x1F5:0:0
+Apple_Ubiquity_Message: /tmp/launch-cGj5iG/Apple_Ubiquity_Message
+escape_flag: '1'
+rvm_prefix: /Users/axu
+PATH: /Users/axu/.rvm/gems/ruby-2.0.0-p0/bin:/Users/axu/.rvm/gems/ruby-2.0.0-p0@global/bin:/Users/axu/.rvm/rubies/ruby-2.0.0-p0/bin:/Users/axu/.rvm/bin:/Users/axu/.nvm/v0.4.12/bin:/Users/axu/bin/gradle-1.0-rc-3/bin:/Users/axu/bin:/Users/axu/mobile/android/android-sdk-mac_x86/tools:/usr/local/bin:/usr/local/sbin:/usr/local/mysql/bin:/usr/local/git/bin:/usr/bin:/bin:/usr/sbin:/sbin
+JRUBY_HOME: /Users/axu/.rvm/rubies/jruby-1.7.3
+PWD: /Users/axu/prj/intalio/code/java-buildpack
+LANG: en_US.UTF-8
+_second: '1'
+rvm_version: 1.18.18 (stable)
+rvm_debug_clr: "\e[35m"
+SHLVL: '1'
+HOME: /Users/axu
+_first: '0'
+LOGNAME: axu
+GEM_PATH: /Users/axu/.rvm/gems/ruby-2.0.0-p0:/Users/axu/.rvm/gems/ruby-2.0.0-p0@global
+NVM_BIN: /Users/axu/.nvm/v0.4.12/bin
+GOPATH: /Users/axu/prj/go
+COM_GOOGLE_CHROME_FRAMEWORK_SERVICE_PROCESS/USERS/AXU/LIBRARY/APPLICATION_SUPPORT/GOOGLE/CHROME_SOCKET: /tmp/launch-c9Ipko/ServiceProcessSocket
+rvm_warn_clr: "\e[33m"
+RUBY_VERSION: ruby-2.0.0-p0
+_: /Users/axu/.rvm/gems/ruby-2.0.0-p0/bin/rspec
+/Users/axu/prj/intalio/code/java-buildpack/config/components.yml @ 2013-06-24 15:17:20.099-07:00::
+---
+containers:
+- NeocoreBuildpack::Container::NeocoreJetty
+jres:
+- JavaBuildpack::Jre::OpenJdk
+frameworks:
+- JavaBuildpack::Framework::JavaOpts
+/Users/axu/prj/intalio/code/java-buildpack/config/openjdk.yml @ 2013-06-24 15:17:20.100-07:00::
+---
+repository_root: http://download.pivotal.io.s3.amazonaws.com/openjdk/lucid/x86_64
+version: 1.7.0_+
+memory_heuristics:
+  heap: 0.75
+  permgen: 0.1
+  stack: 0.05
+  native: 0.1

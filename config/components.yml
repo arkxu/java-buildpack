@@ -21,3 +21,7 @@ jres:
   - "JavaBuildpack::Jre::OpenJdk"
 frameworks:
   - "JavaBuildpack::Framework::JavaOpts"
+  - "JavaBuildpack::Framework::NewRelic"
+  - "JavaBuildpack::Framework::PlayAutoReconfiguration"
+  - "JavaBuildpack::Framework::PlayJpaPlugin"
+  - "JavaBuildpack::Framework::SpringAutoReconfiguration"

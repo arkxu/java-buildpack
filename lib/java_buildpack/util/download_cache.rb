@@ -1,5 +1,6 @@
+# Encoding: utf-8
 # Cloud Foundry Java Buildpack
-# Copyright (c) 2013 the original author or authors.
+# Copyright 2013 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'java_buildpack/diagnostics'
 require 'java_buildpack/util'
 require 'net/http'
 require 'tmpdir'
@@ -31,6 +33,7 @@ module JavaBuildpack::Util
     def initialize(cache_root = Dir.tmpdir)
       Dir.mkdir(cache_root) unless File.exists? cache_root
       @cache_root = cache_root
+      @logger = JavaBuildpack::Diagnostics::LoggerFactory.get_logger
     end
 
     # Retrieves an item from the cache.  Retrieval of the item uses the following algorithm:
@@ -89,79 +92,105 @@ module JavaBuildpack::Util
 
     private
 
-    def delete_file(filename)
-      File.delete filename if File.exists? filename
-    end
+      HTTP_ERRORS = [
+        EOFError,
+        Errno::ECONNREFUSED,
+        Errno::ECONNRESET,
+        Errno::EHOSTUNREACH,
+        Errno::EINVAL,
+        Errno::EPIPE,
+        Errno::ETIMEDOUT,
+        Net::HTTPBadResponse,
+        Net::HTTPHeaderSyntaxError,
+        Net::ProtocolError,
+        SocketError,
+        Timeout::Error
+      ]
 
-    def download(filenames, uri)
-      rich_uri = URI(uri)
+      def delete_file(filename)
+        File.delete filename if File.exists? filename
+      end
 
-      Net::HTTP.start(rich_uri.host, rich_uri.port) do |http|
-        request = Net::HTTP::Get.new(uri)
-        http.request request do |response|
-          write_response(filenames, response)
+      def download(filenames, uri)
+        rich_uri = URI(uri)
+
+        Net::HTTP.start(rich_uri.host, rich_uri.port, use_ssl: use_ssl?(rich_uri)) do |http|
+          request = Net::HTTP::Get.new(uri)
+          http.request request do |response|
+            write_response(filenames, response)
+          end
+        end
+
+      rescue *HTTP_ERRORS
+        puts 'FAIL'
+        raise "Unable to download from #{uri}"
+      end
+
+      def filenames(uri)
+        key = URI.escape(uri, '/')
+        {
+          cached: File.join(@cache_root, "#{key}.cached"),
+          etag: File.join(@cache_root, "#{key}.etag"),
+          last_modified: File.join(@cache_root, "#{key}.last_modified"),
+          lock: File.join(@cache_root, "#{key}.lock")
+        }
+      end
+
+      def persist_header(response, header, filename)
+        unless response[header].nil?
+          File.open(filename, File::CREAT | File::WRONLY) do |file|
+            file.write(response[header])
+          end
         end
       end
-    end
 
-    def filenames(uri)
-      key = URI.escape(uri, '/')
-      {
-        :cached => File.join(@cache_root, "#{key}.cached"),
-        :etag => File.join(@cache_root, "#{key}.etag"),
-        :last_modified => File.join(@cache_root, "#{key}.last_modified"),
-        :lock => File.join(@cache_root, "#{key}.lock")
-      }
-    end
-
-    def persist_header(response, header, filename)
-      unless response[header].nil?
-        File.open(filename, File::CREAT|File::WRONLY) do |file|
-          file.write(response[header])
+      def set_header(request, header, filename)
+        if File.exists?(filename)
+          File.open(filename, File::RDONLY) do |file|
+            request[header] = file.read
+          end
         end
       end
-    end
 
-    def set_header(request, header, filename)
-      if File.exists?(filename)
-        File.open(filename, File::RDONLY) do |file|
-          request[header] = file.read
+      def should_download(filenames)
+        !File.exists?(filenames[:cached])
+      end
+
+      def should_update(filenames)
+        File.exists?(filenames[:cached]) && (File.exists?(filenames[:etag]) || File.exists?(filenames[:last_modified]))
+      end
+
+      def update(filenames, uri)
+        rich_uri = URI(uri)
+
+        Net::HTTP.start(rich_uri.host, rich_uri.port, use_ssl: use_ssl?(rich_uri)) do |http|
+          request = Net::HTTP::Get.new(uri)
+          set_header request, 'If-None-Match', filenames[:etag]
+          set_header request, 'If-Modified-Since', filenames[:last_modified]
+
+          http.request request do |response|
+            write_response(filenames, response) unless response.code == '304'
+          end
+        end
+
+      rescue *HTTP_ERRORS
+        @logger.warn "Unable to update from #{uri}. Using cached version."
+      end
+
+      def use_ssl?(uri)
+        uri.scheme == 'https'
+      end
+
+      def write_response(filenames, response)
+        persist_header response, 'Etag', filenames[:etag]
+        persist_header response, 'Last-Modified', filenames[:last_modified]
+
+        File.open(filenames[:cached], File::CREAT | File::WRONLY) do |cached_file|
+          response.read_body do |chunk|
+            cached_file.write(chunk)
+          end
         end
       end
-    end
-
-    def should_download(filenames)
-      !File.exists?(filenames[:cached])
-    end
-
-    def should_update(filenames)
-      File.exists?(filenames[:cached]) && (File.exists?(filenames[:etag]) || File.exists?(filenames[:last_modified]))
-    end
-
-    def update(filenames, uri)
-      rich_uri = URI(uri)
-
-      Net::HTTP.start(rich_uri.host, rich_uri.port) do |http|
-        request = Net::HTTP::Get.new(uri)
-        set_header request, 'If-None-Match', filenames[:etag]
-        set_header request, 'If-Modified-Since', filenames[:last_modified]
-
-        http.request request do |response|
-          write_response(filenames, response) unless response.code == '304'
-        end
-      end
-    end
-
-    def write_response(filenames, response)
-      persist_header response, 'Etag', filenames[:etag]
-      persist_header response, 'Last-Modified', filenames[:last_modified]
-
-      File.open(filenames[:cached], File::CREAT|File::WRONLY) do |cached_file|
-        response.read_body do |chunk|
-          cached_file.write(chunk)
-        end
-      end
-    end
 
   end
 
