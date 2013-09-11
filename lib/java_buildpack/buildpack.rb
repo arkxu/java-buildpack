@@ -91,7 +91,7 @@ module JavaBuildpack
 
       payload = {
           'addons' => [],
-          'config_vars' => {'INTALIO_BOOT_DATA' => "#{@app_dir}/data_package"},
+          'config_vars' => {},
           'default_process_types' => {
               'web' => command
           }

@@ -7,6 +7,7 @@
 
 require 'uri'
 require 'java_buildpack/container'
+require 'java_buildpack/container/container_utils'
 require 'java_buildpack/repository/configured_item'
 require 'java_buildpack/util/application_cache'
 require 'java_buildpack/util/format_duration'
@@ -52,16 +53,20 @@ module NeocoreBuildpack::Container
     #
     # @return [String] the command to run the application.
     def release
-      @java_opts << "-Djetty.port=$PORT -Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog -Dcom.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL=WARNING -Dlogback.root.level=WARN -Dlogback.appender=FILE_CF"
+      @java_opts << "-Djetty.port=$PORT"
+      @java_opts << "-Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog"
+      @java_opts << "-Dcom.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL=WARNING"
+      @java_opts << "-Dlogback.root.level=WARN"
+      @java_opts << "-Dlogback.appender=FILE_CF"
 
-      "JAVA_HOME=#{@java_home} JAVA_OPTS=\"#{java_opts}\" eclipse/start.sh"
+      java_home_string = "JAVA_HOME=#{@java_home}"
+      java_opts_string = JavaBuildpack::Container::ContainerUtils.space("JAVA_OPTS=\"#{JavaBuildpack::Container::ContainerUtils.to_java_opts_s(@java_opts)}\"")
+      start_script_string = JavaBuildpack::Container::ContainerUtils.space(File.join 'eclipse', 'start.sh')
+
+      "#{java_home_string}#{java_opts_string}#{start_script_string}"
     end
 
     private
-
-    def java_opts
-      @java_opts.compact.sort.join(' ')
-    end
 
     def download_intalio_app
       war_file = File.join(@app_dir, NeocoreBuildpack::WAR_FILE_NAME)

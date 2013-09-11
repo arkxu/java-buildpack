@@ -8,6 +8,6 @@
 module NeocoreBuildpack
   WAR_FILE_NAME = 'intalio.tar.gz'
   DATA_PACKAGE_FILE_NAME = 'data_external.zip'
-  DATA_PACKAGE_FOLDER = 'data_package'
+  DATA_PACKAGE_FOLDER = 'bootdata'
   APPLICATION_NAME = 'intalio'
 end
