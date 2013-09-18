@@ -6,14 +6,13 @@
 # under which the program(s) have been supplied.
 
 require 'spec_helper'
-require 'neocore_buildpack/utils/manifest_reader'
+require 'neocore_buildpack/util/manifest_reader'
 
 describe NeocoreBuildpack::ManifestReader do
 
   it 'should read the attributes in manifest.yml' do
     reader = NeocoreBuildpack::ManifestReader.new('spec/fixtures/valid_app_manifest')
 
-    reader.application_name.should == 'intalio'
     reader.war_file_url.should match(/downloads.intalio.com/)
     reader.data_package_url.should match(/downloads.intalio.com/)
   end

@@ -29,14 +29,14 @@ module NeocoreBuildpack
     end
 
     def war_file_url
-      if application_name == 'intalio' && @deploy_manifest['applications'][0]['env']
+      if @deploy_manifest['applications'][0]['env']
         return @deploy_manifest['applications'][0]['env']['war_file_url']
       end
       nil
     end
 
     def data_package_url
-      if application_name == 'intalio' && @deploy_manifest['applications'][0]['env']
+      if @deploy_manifest['applications'][0]['env']
         return @deploy_manifest['applications'][0]['env']['data_package_url']
       end
       nil

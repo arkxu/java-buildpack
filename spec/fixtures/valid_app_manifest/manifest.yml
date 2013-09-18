@@ -1,10 +1,21 @@
 ---
 applications:
-- name: intalio
-  memory: 2G
+- name: ark
+  buildpack: https://github.com/arkxu/java-buildpack
+  memory: 3G
   instances: 1
-  url: none
+  services:
+    mg2_intalio:
+      label: mongodb
+      provider: core
+      version: '2.2'
+      plan: default
+    pg2_intalio:
+      label: postgresql
+      provider: core
+      version: '9.1'
+      plan: default
   path: .
   env:
-    war_file_url: http://downloads.intalio.com/prod/intalio/2.6/intalio.tar.gz
-    data_package_url: http://downloads.intalio.com/prod/intalio/2.6/data_external.zip
+    war_file_url: http://downloads.intalio.com/stage/v2/intalio/intalio.tar.gz
+    data_package_url: http://downloads.intalio.com/prod/intalio/2.7/data_external.zip
