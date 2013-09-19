@@ -54,16 +54,16 @@ module NeocoreBuildpack::Container
     # @return [String] the command to run the application.
     def release
       @java_opts << "-Djetty.port=$PORT"
-      @java_opts << "-Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog"
-      @java_opts << "-Dcom.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL=WARNING"
       @java_opts << "-Dlogback.root.level=WARN"
       @java_opts << "-Dlogback.appender=FILE_CF"
+      @java_opts << "-Dencryption.key.file.path=." # this is only for testing
 
-      java_home_string = "JAVA_HOME=#{@java_home}"
+      path_string = "PATH=#{File.join '..', @java_home, 'bin'}:$PATH"
+      java_home_string = JavaBuildpack::Container::ContainerUtils.space("JAVA_HOME=#{@java_home}")
       java_opts_string = JavaBuildpack::Container::ContainerUtils.space("JAVA_OPTS=\"#{JavaBuildpack::Container::ContainerUtils.to_java_opts_s(@java_opts)}\"")
       start_script_string = JavaBuildpack::Container::ContainerUtils.space(File.join 'eclipse', 'start.sh')
 
-      "#{java_home_string}#{java_opts_string}#{start_script_string}"
+      "#{path_string}#{java_home_string}#{java_opts_string}#{start_script_string}"
     end
 
     private
@@ -95,7 +95,6 @@ module NeocoreBuildpack::Container
       `mkdir -p #{data_package_folder}`
       `unzip -o #{data_package_file} -d #{data_package_folder}`
       File.delete("#{data_package_file}")
-      puts `ls -l -a #{@app_dir}`      
     end
   end
 end
